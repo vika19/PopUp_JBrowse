@@ -1,0 +1,51 @@
+1) Setup the service:
+sudo nano /etc/systemd/system/add-users.service
+
+#add this to the file:
+[Unit]
+Description=Add Users
+[Service]
+ExecStart=/usr/bin/add-users.sh
+[Install]
+WantedBy=multi-user.target
+
+#save and exit
+This will start the service whenever a multi-user (runlevel 5) boot is initiated.  It points to the script in /usr/bin/add-users.sh - so let's make that next.
+
+2) make the boot script:
+
+This script will run every time the computer boots, and checks to make sure the user exists, has a home, owns said home, and can read, write, and execute in that folder.
+sudo nano /usr/bin/add-users.sh
+
+#add this to the file:
+
+#!/bin/bash
+declare -a names=("guest_user" "guest_user2" "guest_user3")
+
+for i in "${names[@]}"
+do
+
+#check if user exists
+if grep -q $i /etc/passwd; then : ; else useradd $i -p $(openssl passwd -1 learningR) -d /home/$i -m ; fi
+
+#check if user home exists
+if [ -d /home/$i ]; then : ; else mkdir -p /home/$i; fi
+#force owned by user and not root
+chown $i /home/$i; fi
+
+#check if user home has correct permisisons
+if [ -r /home/$i ] && [ -w /home/$i ] && [ -x /home/$i ]; then : ; else chmod 755 /home/$i; fi
+done
+
+#save and exit
+
+
+You can change the users by changing the first line, and change the default password by changing "learningR" to whatever you'd like.
+
+3) make it executable
+sudo chmod 755 /usr/bin/add-users.sh
+
+4) set the service to start at boot
+sudo systemctl enable add-users.service
+
+5) reboot and check to see if it worked!

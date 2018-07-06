@@ -1,0 +1,61 @@
+#/usr/local/bin/browser/set_ncgas_admin.sh
+
+#!/bin/bash
+
+username=ncgas_admin
+if getent group users | grep &>/dev/null "\b${username}\b"; then
+    echo "Ncgas admin user already in group users"
+else
+   /usr/sbin/usermod -G users ncgas_admin 
+    echo "Ncgas admin user added to group users"
+fi
+
+if [[ ! -e /opt/ncgas_admin/.sudofix ]]; then
+   echo 'ncgas_admin  ALL=(ALL:ALL) ALL' >> /etc/sudoers
+   touch /opt/ncgas_admin/.sudofix
+   echo "Added ncgas admin user to sudoers"
+else
+   echo "Ncgas admin user already in sudoers"
+fi
+
+
+if [[ ! -e /opt/ncgas_admin/.passset ]]; then
+   echo -e "nncgastotherescue\nnncgastotherescue" | passwd ncgas_admin
+   touch /opt/ncgas_admin/.passset
+   echo "Added ncgas admin user password set"
+else
+   echo "Ncgas admin user password already set"
+fi
+
+
+
+
+#/etc/systemd/system/browser.service
+[Unit]
+After=httpd.service
+Description=Start Tripal Demon 
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/www/html
+ExecStart=-/usr/bin/drush trpjob-daemon start
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
+
+
+#/etc/systemd/system/ncgas-set.service
+
+[Unit]
+After=sshd.service
+Description=Add NCGAS customizations
+
+[Service]
+Type=oneshot
+ExecStart=-/usr/local/bin/set_ncgas_admin.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
+
